@@ -1,6 +1,7 @@
 import UIKit
 import Accelerate
 import PlaygroundSupport
+import XCPlayground
 
 
 func readCSV(fileName:String, fileType: String)-> String!{
@@ -136,5 +137,36 @@ do {
 print(output)
 print(pgram)
 
+
+let documentUrl = XCPlaygroundSharedDataDirectoryURL.appendingPathComponent("playground_interpolation_and_pgram.csv")
+
+var csv_body = "pgram, linear-interpolation\n"
+
+var lengths = [output.count, pgram.count]
+
+var max_len = Int(lengths.max()!)
+
+for var i in 0..<max_len {
+    
+    var row = "\n"
+    
+    if i < output.count && i < pgram.count {
+        row = "\(pgram[i]),\(output[i])\n"
+    } else if(i < output.count) {
+        row = ",\(output[i])\n"
+    } else {
+        row = "\(pgram[i]),\n"
+    }
+    
+    csv_body.append(row)
+}
+
+
+let data = Data(csv_body.utf8)
+
+do {
+    try data.write(to: documentUrl!)
+    print("data written")
+} catch { print(error) }
 
 
