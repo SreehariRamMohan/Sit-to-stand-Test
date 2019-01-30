@@ -43,8 +43,41 @@ func fft(frameOfSamples: [Float]) -> [Float] {
     // Perform a forward FFT
     vDSP_fft_zip(fftSetup, &complexBuffer, 1, vDSP_Length(log2Size), FFTDirection(FFT_FORWARD))
     
-    let realFloats = Array(reals)
-    let imaginaryFloats = Array(imags)
+    
+//    //transform realFloats to "traditional" periodogram
+//    let array_exponentials = UnsafeMutablePointer<Float>.allocate(capacity: reals.count)
+//    array_exponentials.initialize(to: 2.0)
+//
+//    var exp_output = UnsafeMutablePointer<Float>.allocate(capacity: reals.count)
+//    var real_unsafe_pointer = UnsafePointer<Float>(Array(reals))
+//
+//
+//    let unsafe_mutable_pointer_for_size = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
+//    unsafe_mutable_pointer_for_size.initialize(to: Int32(reals.count))
+//
+//    let unsafe_pointer_for_size = UnsafePointer(unsafe_mutable_pointer_for_size)
+//
+//
+//    vvpowf(exp_output, array_exponentials, real_unsafe_pointer, unsafe_pointer_for_size)
+    
+    
+    var realFloats = Array(reals)
+    var imaginaryFloats = Array(imags)
+    
+    var float_squared: [Float] = []
+
+    var exponentials: [Float] = [Float](repeating: 2, count: realFloats.count)
+    var z = [Float](repeating: 0, count: realFloats.count)
+    var n = Int32(realFloats.count)
+    
+    vvpowf(&float_squared, &exponentials, &realFloats, &n)
+    
+    //var pgram: [Float] = float_squared * (Float(2.0)/Float(realFloats.count))
+    
+    
+    
+    
+    
     
     return realFloats
 }
