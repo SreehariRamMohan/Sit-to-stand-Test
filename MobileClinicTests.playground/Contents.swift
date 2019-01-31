@@ -4,7 +4,18 @@ import PlaygroundSupport
 import XCPlayground
 
 
-func readCSV(fileName:String, fileType: String)-> String!{
+
+var realFloats: [Float] = [1.0, 2.0, 3.0, 4.0, 5.0]
+
+var exponentials: [Float] = [Float](repeating: 2, count: realFloats.count)
+var z = [Float](repeating: 0, count: realFloats.count)
+var n = Int32(realFloats.count)
+
+vvpowf(&z, &exponentials, &realFloats, &n)
+
+print(z)
+
+func readCSV(fileName:String, fileType: String) -> String!{
     guard let filepath = Bundle.main.path(forResource: fileName, ofType: fileType)
         else {
             return nil
@@ -70,16 +81,9 @@ func fft(frameOfSamples: [Float]) -> [Float] {
     var z = [Float](repeating: 0, count: realFloats.count)
     var n = Int32(realFloats.count)
     
-    vvpowf(&float_squared, &exponentials, &realFloats, &n)
+    vvpowf(&z, &exponentials, &realFloats, &n)
     
-    //var pgram: [Float] = float_squared * (Float(2.0)/Float(realFloats.count))
-    
-    
-    
-    
-    
-    
-    return realFloats
+    return z.map{$0 * Float(Float(2.0)/Float(reals.count))}
 }
 
 func linearly_interpolate(input_x: [Double], input_y: [Double]) -> [Double]{
@@ -142,36 +146,23 @@ func get_signal_from_csv(data: String, col_idx: Int) -> ([Double], [Double]) {
 
 var csv_content = readCSV(fileName: "all-signals", fileType: "csv")!
 
-var tuple_output = get_signal_from_csv(data: csv_content, col_idx: 1)
+var signal_from_csv = get_signal_from_csv(data: csv_content, col_idx: 1)
 
-var signal = tuple_output.0
-var time_signal = tuple_output.1
+var time_signal = signal_from_csv.1
 
+var signal = signal_from_csv.0
+
+//print(time_signal)
+
+//print(signal)
 
 let output = linearly_interpolate(input_x: time_signal, input_y: signal)
 
+print(output)
+
 let pgram = fft(frameOfSamples: output.map{Float($0) ?? 0})
 
-
-let fileName = "Playground-interpolation_and_pgram.csv"
-let csvText = "pgram,signal_interpolation\n"
-
-let fileUrl = playgroundSharedDataDirectory.appendingPathComponent("test.txt")
-let text_to_write = "hello"
-
-
-
-do {
-    try text_to_write.write(to: fileUrl, atomically: true, encoding: .utf8)
-} catch {
-    print(error)
-}
-
-print(output)
-print(pgram)
-
-
-let documentUrl = XCPlaygroundSharedDataDirectoryURL.appendingPathComponent("playground_interpolation_and_pgram.csv")
+let documentUrl = XCPlaygroundSharedDataDirectoryURL.appendingPathComponent("2-playground_interpolation_and_pgram.csv")
 
 var csv_body = "pgram, linear-interpolation\n"
 
@@ -200,6 +191,8 @@ let data = Data(csv_body.utf8)
 do {
     try data.write(to: documentUrl!)
     print("data written")
-} catch { print(error) }
+} catch {
+    print(error)
+}
 
 
