@@ -3,18 +3,6 @@ import Accelerate
 import PlaygroundSupport
 import XCPlayground
 
-
-
-var realFloats: [Float] = [1.0, 2.0, 3.0, 4.0, 5.0]
-
-var exponentials: [Float] = [Float](repeating: 2, count: realFloats.count)
-var z = [Float](repeating: 0, count: realFloats.count)
-var n = Int32(realFloats.count)
-
-vvpowf(&z, &exponentials, &realFloats, &n)
-
-print(z)
-
 func readCSV(fileName:String, fileType: String) -> String!{
     guard let filepath = Bundle.main.path(forResource: fileName, ofType: fileType)
         else {
@@ -102,6 +90,13 @@ func linearly_interpolate(input_x: [Double], input_y: [Double]) -> [Double]{
     return new_values
 }
 
+
+/**
+ Preconditions: data is a CSV of rows with column elements seperated by ,
+                col_idx is a valid index of each column
+ 
+ Postconditions: returns a tuple with the (signal, time_series)
+ **/
 func get_signal_from_csv(data: String, col_idx: Int) -> ([Double], [Double]) {
     var result: [[String]] = []
     let rows = data.components(separatedBy: "\n")
@@ -143,6 +138,10 @@ func get_signal_from_csv(data: String, col_idx: Int) -> ([Double], [Double]) {
     return (signal, time)
 }
 
+//func get_multiple_columns_from_csv(data: String) -> [[String]] {
+//
+//    return nil
+//}
 
 var csv_content = readCSV(fileName: "all-signals", fileType: "csv")!
 
