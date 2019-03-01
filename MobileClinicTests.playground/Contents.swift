@@ -303,6 +303,21 @@ func standardDeviation(array: [Double]) -> Double
     return sqrt(sumOfSquaredAvgDiff / length)
 }
 
+func detect_peaks(y: [Double]) -> ([Int], [Double]) {
+    //window of size 3
+    
+    var peakIndexes: [Int] = []
+    var peakY: [Double] = []
+    
+    for index in 1..<(y.count-1) {
+        if(y[index] > y[index-1] && y[index] > y[index+1]) {
+            //point is a peak
+            peakIndexes.append(index)
+            peakY.append(y[index])
+        }
+    }
+    return (peakIndexes, peakY)
+}
 
 // Smooth z-score thresholding filter
 func ThresholdingAlgo(y: [Double],lag: Int,threshold: Double,influence: Double) -> ([Int], [Double]) {
@@ -374,7 +389,7 @@ func movingAverageFilter(filterWidth: Int, inputData: [CGFloat]) -> [CGFloat]{
 //    return nil
 //}
 
-var csv_content = readCSV(fileName: "all_signals_3", fileType: "csv")!
+var csv_content = readCSV(fileName: "all_signals_4", fileType: "csv")!
 
 var signal_from_csv = get_signal_from_csv(data: csv_content, col_idx: 15)
 
@@ -387,7 +402,9 @@ time_signal = Array(time_signal.prefix(Int(time_signal.count/2)))
 
 var filtered = movingAverageFilter(filterWidth: 7, inputData: signal.map{CGFloat($0)})
 
-let peakCoordinates = ThresholdingAlgo(y: filtered.map{Double($0)}, lag: 5, threshold: 1, influence: 0.5)
+//let peakCoordinates = ThresholdingAlgo(y: filtered.map{Double($0)}, lag: 3, threshold: 0.5, influence: 0.8)
+
+let peakCoordinates = detect_peaks(y: filtered.map{Double($0)})
 
 var peakX = peakCoordinates.0
 var peakY = peakCoordinates.1
