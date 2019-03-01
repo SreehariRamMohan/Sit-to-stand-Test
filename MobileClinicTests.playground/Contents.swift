@@ -2,6 +2,7 @@ import UIKit
 import Accelerate
 import PlaygroundSupport
 import XCPlayground
+import Foundation
 
 func readCSV(fileName:String, fileType: String) -> String!{
     guard let filepath = Bundle.main.path(forResource: fileName, ofType: fileType)
@@ -198,30 +199,25 @@ func compute_periodogram(frameOfSamples: [Float]) -> [Float] {
     return z.map{$0 * Float(Float(2.0)/Float(reals.count))}
 }
 
-func determine_squats(periodogram: [Float]) -> Int{
+func determine_squats(periodogram: [Double], peakX: [Int], peakY: [Double]) -> Double{
     
     //remove the element at index 0 in case it is indefinite.
     
+    var max = peakY.max()!
+    var maxIdx = peakX[peakY.index(of: max)!]
+    
+    
     var pgram = periodogram
-    
-    pgram.remove(at: 0)
-    
-    //find max
-    
-    var max = pgram.max()
-    var maxIdx = pgram.firstIndex(of: max!)!
-    
-    maxIdx += 1 // since we removed the first element.
     
     var frames = pgram.count
     
-    var max_freq = maxIdx/frames
+    var max_freq = Double(maxIdx)/Double(frames)
     
-    var period = 1/max_freq
+    var period = 1/Double(max_freq)
     
-    var num_squats = frames/period
+    var num_squats = Double(frames)/Double(period)
     
-    return num_squats
+    return num_squats.rounded()
 }
 
 
@@ -281,12 +277,82 @@ func arithmeticMean(array: [CGFloat]) -> CGFloat {
     return total / CGFloat(array.count)
 }
 
+// Function to calculate the arithmetic mean
+func arithmeticMean(array: [Double]) -> Double {
+    var total: Double = 0
+    for number in array {
+        total += number
+    }
+    return total / Double(array.count)
+}
+
 // Function to extract some range from an array
 func subArray<T>(array: [T], s: Int, e: Int) -> [T] {
     if e > array.count {
         return []
     }
     return Array(array[s..<min(e, array.count)])
+}
+
+// Function to calculate the standard deviation
+func standardDeviation(array: [Double]) -> Double
+{
+    let length = Double(array.count)
+    let avg = array.reduce(0, {$0 + $1}) / length
+    let sumOfSquaredAvgDiff = array.map { pow($0 - avg, 2.0)}.reduce(0, {$0 + $1})
+    return sqrt(sumOfSquaredAvgDiff / length)
+}
+
+
+// Smooth z-score thresholding filter
+func ThresholdingAlgo(y: [Double],lag: Int,threshold: Double,influence: Double) -> ([Int], [Double]) {
+    
+    // Create arrays
+    var signals   = Array(repeating: 0, count: y.count)
+    var filteredY = Array(repeating: 0.0, count: y.count)
+    var avgFilter = Array(repeating: 0.0, count: y.count)
+    var stdFilter = Array(repeating: 0.0, count: y.count)
+    
+    // Initialise variables
+    for i in 0...lag-1 {
+        signals[i] = 0
+        filteredY[i] = y[i]
+    }
+    
+    // Start filter
+    avgFilter[lag-1] = arithmeticMean(array: subArray(array: y, s: 0, e: lag-1))
+    stdFilter[lag-1] = standardDeviation(array: subArray(array: y, s: 0, e: lag-1))
+    
+    for i in lag...y.count-1 {
+        if abs(y[i] - avgFilter[i-1]) > threshold*stdFilter[i-1] {
+            if y[i] > avgFilter[i-1] {
+                signals[i] = 1      // Positive signal
+            } else {
+                // Negative signals are turned off for this application
+                //signals[i] = -1       // Negative signal
+            }
+            filteredY[i] = influence*y[i] + (1-influence)*filteredY[i-1]
+        } else {
+            signals[i] = 0          // No signal
+            filteredY[i] = y[i]
+        }
+        // Adjust the filters
+        avgFilter[i] = arithmeticMean(array: subArray(array: filteredY, s: i-lag, e: i))
+        stdFilter[i] = standardDeviation(array: subArray(array: filteredY, s: i-lag, e: i))
+    }
+    
+    var peakIndexes: [Int] = []
+    var peakY: [Double] = []
+    
+    for index in 0..<y.count {
+        if(signals[index] == 1) {
+            peakIndexes.append(index)
+            peakY.append(y[index])
+        }
+    }
+    
+    //return (signals,avgFilter,stdFilter)
+    return (peakIndexes, peakY)
 }
 
 func movingAverageFilter(filterWidth: Int, inputData: [CGFloat]) -> [CGFloat]{
@@ -308,7 +374,7 @@ func movingAverageFilter(filterWidth: Int, inputData: [CGFloat]) -> [CGFloat]{
 //    return nil
 //}
 
-var csv_content = readCSV(fileName: "all_signals_2", fileType: "csv")!
+var csv_content = readCSV(fileName: "all_signals_3", fileType: "csv")!
 
 var signal_from_csv = get_signal_from_csv(data: csv_content, col_idx: 15)
 
@@ -316,30 +382,44 @@ var time_signal = signal_from_csv.1
 
 var signal = signal_from_csv.0
 
+signal = Array(signal.prefix(Int(signal.count/2)))
+time_signal = Array(time_signal.prefix(Int(time_signal.count/2)))
+
 var filtered = movingAverageFilter(filterWidth: 7, inputData: signal.map{CGFloat($0)})
 
-var num_squats = determine_squats(periodogram: filtered.map{Float($0)})
+let peakCoordinates = ThresholdingAlgo(y: filtered.map{Double($0)}, lag: 5, threshold: 1, influence: 0.5)
 
-print("Patient squatted \(num_squats) times")
+var peakX = peakCoordinates.0
+var peakY = peakCoordinates.1
+
+var squats = determine_squats(periodogram: signal, peakX: peakX, peakY: peakY)
+
+print(squats)
 
 let documentUrl = XCPlaygroundSharedDataDirectoryURL.appendingPathComponent("Combined_iPhone_pgram.csv")
 
-var csv_body = "time, pgram\n"
+var csv_body = "pgram, peakX, peakY\n"
 
-var lengths = [time_signal.count, filtered.count]
+var lengths = [filtered.count, peakX.count, peakY.count]
 
 var max_len = Int(lengths.max()!)
+
+print(max_len)
+
+print("\(filtered.count)")
+
+print("\(peakX.count) -- \(peakY.count)")
 
 for var i in 0..<max_len {
     
     var row = "\n"
     
-    if i < filtered.count && i < time_signal.count {
-        row = "\(time_signal[i]),\(filtered[i])\n"
+    //assuming there are less values in signal than peaks
+    
+    if i < filtered.count && i < peakX.count {
+        row = "\(filtered[i]),\(peakX[i]),\(peakY[i])\n"
     } else if(i < filtered.count) {
-        row = ",\(filtered[i])\n"
-    } else {
-        row = "\(time_signal[i]),\n"
+        row = "\(filtered[i]),,\n"
     }
     
     csv_body.append(row)
