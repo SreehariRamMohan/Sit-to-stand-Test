@@ -389,7 +389,7 @@ func movingAverageFilter(filterWidth: Int, inputData: [CGFloat]) -> [CGFloat]{
 //    return nil
 //}
 
-var csv_content = readCSV(fileName: "all_signals_4", fileType: "csv")!
+var csv_content = readCSV(fileName: "all_signals_5", fileType: "csv")!
 
 var signal_from_csv = get_signal_from_csv(data: csv_content, col_idx: 15)
 
